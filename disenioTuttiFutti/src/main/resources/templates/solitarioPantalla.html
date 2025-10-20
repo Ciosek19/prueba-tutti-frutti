@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Tutti Frutti - Juego</title>
+</head>
+<body>
+    <h1>TUTTI FRUTTI</h1>
+    
+    <!-- Si hay error, mostrarlo -->
+    <div th:if="${error}">
+        <h2>ERROR:</h2>
+        <p th:text="${error}"></p>
+    </div>
+    
+    <!-- Si hay categorías, mostrar el juego -->
+    <div th:if="${letra != null and categorias != null}">
+        
+        <!-- Mostrar la letra -->
+        <h2>Tu letra es: <span th:text="${letra}"></span></h2>
+        
+        <!-- Formulario que envía a /juego/solitario/validar -->
+        <form action="/juego/solitario/validar" method="POST">
+            
+            <!-- Campo oculto con la letra -->
+            <input type="hidden" name="letra" th:value="${letra}">
+            
+            <!-- Por cada categoría, crear un label e input -->
+            <div th:each="cat : ${categorias}">
+                <label th:text="${cat} + ':'"></label>
+                <input type="text" th:name="${cat}" th:placeholder="'Escribe con ' + ${letra}">
+                <br><br>
+            </div>
+            
+            <!-- Botón para enviar -->
+            <button type="submit">TUTTI FRUTTI</button>
+        </form>
+    </div>
+</body>
+</html>

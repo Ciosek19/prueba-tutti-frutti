@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Resultados - Tutti Frutti</title>
+</head>
+<body>
+    <h1>RESULTADOS</h1>
+    
+    <!-- Si hay error -->
+    <div th:if="${error}">
+        <h2>ERROR:</h2>
+        <p th:text="${error}"></p>
+    </div>
+    
+    <!-- Si hay resultados -->
+    <div th:if="${resultado != null}">
+        
+        <!-- Puntaje total -->
+        <h2>PUNTAJE TOTAL: <span th:text="${resultado.puntajeTotal}"></span> puntos</h2>
+        
+        <p>Letra usada: <strong th:text="${letra}"></strong></p>
+        
+        <p>Respuestas válidas: <span th:text="${resultado.respuestasValidas}"></span></p>
+        <p>Respuestas inválidas: <span th:text="${resultado.respuestasInvalidas}"></span></p>
+        
+        <hr>
+        
+        <h3>DETALLE:</h3>
+        
+        <!-- Por cada validación, mostrar los detalles -->
+        <ul>
+            <li th:each="v : ${resultado.validaciones}">
+                <strong th:text="${v.categoria}"></strong>: 
+                <span th:text="${v.respuestaUsuario}"></span>
+                - 
+                <span th:if="${v.esValida}">VALIDA</span>
+                <span th:if="${!v.esValida}">INVALIDA</span>
+                - 
+                <span th:text="${v.puntos} + ' puntos'"></span>
+                <br>
+                Razón: <em th:text="${v.razon}"></em>
+            </li>
+        </ul>
+        
+        <hr>
+        
+        <!-- Botones -->
+        <a href="/juego/solitario/">NUEVA PARTIDA</a>
+    </div>
+</body>
+</html>
