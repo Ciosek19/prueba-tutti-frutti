@@ -1,5 +1,6 @@
 package com.springboot_disenioTuttiFrutti.disenioTuttiFutti.entidades;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -28,5 +29,6 @@ public class PartidaMulti {
 
     @OneToOne
     @JoinColumn(name = "sala_id")
+    @JsonBackReference
     private Sala sala;
 }

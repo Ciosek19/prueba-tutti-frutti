@@ -1,5 +1,6 @@
 package com.springboot_disenioTuttiFrutti.disenioTuttiFutti.entidades;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -25,5 +26,6 @@ public class RespuestaJugador {
 
     @ManyToOne
     @JoinColumn(name = "jugador_id")
+    @JsonBackReference
     private Jugador jugador;
 }

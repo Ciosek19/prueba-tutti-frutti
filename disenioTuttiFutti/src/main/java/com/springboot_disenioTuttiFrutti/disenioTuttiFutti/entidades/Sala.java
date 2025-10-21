@@ -1,5 +1,6 @@
 package com.springboot_disenioTuttiFrutti.disenioTuttiFutti.entidades;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -28,9 +29,11 @@ public class Sala {
     private int jugadoresListosParaReiniciar = 0; // Contador para volver a jugar
 
     @OneToMany(mappedBy = "sala", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
     private List<Jugador> jugadores = new ArrayList<>();
 
     @OneToOne(mappedBy = "sala", cascade = CascadeType.ALL)
+    @JsonManagedReference
     private PartidaMulti partida;
 
     public int getCantidadJugadores() {

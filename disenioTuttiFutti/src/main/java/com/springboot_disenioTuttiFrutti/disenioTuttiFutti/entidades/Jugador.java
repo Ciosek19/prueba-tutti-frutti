@@ -1,5 +1,7 @@
 package com.springboot_disenioTuttiFrutti.disenioTuttiFutti.entidades;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -28,8 +30,10 @@ public class Jugador {
 
     @ManyToOne
     @JoinColumn(name = "sala_id")
+    @JsonBackReference
     private Sala sala;
 
     @OneToMany(mappedBy = "jugador", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
     private List<RespuestaJugador> respuestas = new ArrayList<>();
 }
