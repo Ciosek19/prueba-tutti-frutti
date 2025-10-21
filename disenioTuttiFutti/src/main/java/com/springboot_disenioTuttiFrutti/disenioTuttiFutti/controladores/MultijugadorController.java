@@ -7,10 +7,13 @@ import com.springboot_disenioTuttiFrutti.disenioTuttiFutti.entidades.Sala;
 import com.springboot_disenioTuttiFrutti.disenioTuttiFutti.servicios.SalaServicio;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,13 +44,14 @@ public class MultijugadorController {
     @PostMapping("/crear")
     public String crearSala(@RequestParam String nombreSala,
                            @RequestParam int capacidadMaxima,
+                           @RequestParam int tiempoLimite,
                            HttpSession session) {
         String nombreUsuario = (String) session.getAttribute("usuario");
         if (nombreUsuario == null) {
             return "redirect:/";
         }
 
-        Sala sala = salaServicio.crearSala(nombreSala, capacidadMaxima);
+        Sala sala = salaServicio.crearSala(nombreSala, capacidadMaxima, tiempoLimite);
         return "redirect:/juego/multijugador/sala/" + sala.getId();
     }
 
@@ -142,30 +146,44 @@ public class MultijugadorController {
             return "esperandoJugadores";
         }
 
+        // Calcular tiempo restante
+        long tiempoRestante = Duration.between(LocalDateTime.now(), partida.getTiempoLimite()).getSeconds();
+        if (tiempoRestante < 0) {
+            tiempoRestante = 0;
+        }
+
         // Mostrar formulario de juego
         List<String> categorias = salaServicio.obtenerCategoriasDeSala(salaId);
         model.addAttribute("letra", partida.getLetra());
         model.addAttribute("categorias", categorias);
         model.addAttribute("nombreUsuario", jugador.getNombre());
+        model.addAttribute("tiempoRestante", tiempoRestante);
+        model.addAttribute("salaId", salaId);
 
         return "multijugadorPantalla";
     }
 
     @PostMapping("/responder")
-    public String responder(@RequestParam Map<String, String> params, HttpSession session) {
+    @ResponseBody
+    public ResponseEntity<Map<String, String>> responder(@RequestBody Map<String, String> params, HttpSession session) {
         Long jugadorId = (Long) session.getAttribute("jugadorId");
         Long salaId = (Long) session.getAttribute("salaId");
 
         if (jugadorId == null || salaId == null) {
-            return "redirect:/";
+            return ResponseEntity.badRequest().body(Map.of("error", "Sesión inválida"));
         }
 
         Optional<PartidaMulti> partidaOpt = salaServicio.obtenerPartidaDeSala(salaId);
         if (partidaOpt.isEmpty()) {
-            return "redirect:/juego/multijugador/";
+            return ResponseEntity.badRequest().body(Map.of("error", "Partida no encontrada"));
         }
 
         PartidaMulti partida = partidaOpt.get();
+
+        // Verificar que no se haya acabado el tiempo
+        if (LocalDateTime.now().isAfter(partida.getTiempoLimite())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Tiempo agotado"));
+        }
 
         // Extraer solo las respuestas (sin nombreUsuario ni otros campos)
         Map<String, String> respuestas = new HashMap<>();
@@ -177,12 +195,21 @@ public class MultijugadorController {
 
         salaServicio.guardarRespuestas(jugadorId, respuestas, partida.getLetra());
 
-        return "redirect:/juego/multijugador/jugar";
+        return ResponseEntity.ok(Map.of("status", "success"));
+    }
+
+    @PostMapping("/finalizar-por-tiempo/{salaId}")
+    @ResponseBody
+    public ResponseEntity<Map<String, String>> finalizarPorTiempo(@PathVariable Long salaId) {
+        salaServicio.finalizarPartidaPorTiempo(salaId);
+        return ResponseEntity.ok(Map.of("status", "success"));
     }
 
     @GetMapping("/resultados")
     public String verResultados(Model model, HttpSession session) {
         Long salaId = (Long) session.getAttribute("salaId");
+        Long jugadorId = (Long) session.getAttribute("jugadorId");
+
         if (salaId == null) {
             return "redirect:/";
         }
@@ -206,7 +233,37 @@ public class MultijugadorController {
 
         model.addAttribute("sala", sala);
         model.addAttribute("jugadores", jugadoresOrdenados);
+        model.addAttribute("jugadorId", jugadorId);
 
         return "multijugadorResultados";
+    }
+
+    @PostMapping("/reiniciar")
+    @ResponseBody
+    public ResponseEntity<Map<String, String>> solicitarReinicio(HttpSession session) {
+        Long jugadorId = (Long) session.getAttribute("jugadorId");
+        if (jugadorId == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Sesión inválida"));
+        }
+
+        boolean success = salaServicio.solicitarReinicio(jugadorId);
+        if (success) {
+            return ResponseEntity.ok(Map.of("status", "success"));
+        } else {
+            return ResponseEntity.badRequest().body(Map.of("error", "No se pudo solicitar reinicio"));
+        }
+    }
+
+    @GetMapping("/api/salas")
+    @ResponseBody
+    public List<Sala> obtenerSalas() {
+        return salaServicio.listarSalasDisponibles();
+    }
+
+    @GetMapping("/api/sala/{salaId}")
+    @ResponseBody
+    public ResponseEntity<Sala> obtenerSala(@PathVariable Long salaId) {
+        Optional<Sala> sala = salaServicio.obtenerSala(salaId);
+        return sala.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 }

@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Juego Multijugador - Tutti Frutti</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
 </head>
 <body>
     <h1>TUTTI FRUTTI - MULTIJUGADOR</h1>
@@ -12,14 +14,13 @@
     <hr>
 
     <h3 th:text="'LETRA: ' + ${letra}">LETRA</h3>
-    <p><strong>Completa cada categoria con una palabra que empiece con la letra indicada</strong></p>
+    <p id="timer-display"><strong>Tiempo restante: <span id="tiempo-restante">--</span> segundos</strong></p>
+    <p>Completa cada categoria con una palabra que empiece con la letra indicada</p>
 
     <hr>
 
-    <form method="post" th:action="@{/juego/multijugador/responder}">
-        <input type="hidden" name="nombreUsuario" th:value="${nombreUsuario}">
-
-        <table cellpadding="10">
+    <form id="formulario-juego">
+        <table border="1" cellpadding="10">
             <thead>
                 <tr>
                     <th>CATEGORIA</th>
@@ -30,7 +31,7 @@
                 <tr th:each="categoria : ${categorias}">
                     <td th:text="${categoria}">Categoria</td>
                     <td>
-                        <input type="text" th:name="${categoria}" size="30" required>
+                        <input type="text" th:data-categoria="${categoria}" class="input-respuesta" size="30" required>
                     </td>
                 </tr>
             </tbody>
@@ -38,11 +39,160 @@
 
         <hr>
 
-        <button type="submit">ENVIAR RESPUESTAS</button>
+        <button type="submit" id="boton-enviar" disabled>TUTTI FRUTTI</button>
     </form>
 
     <hr>
 
-    <p><em>Una vez que envies tus respuestas, tendras que esperar a que todos los jugadores terminen</em></p>
+    <p id="mensaje-estado"><em>Completa todos los campos para poder enviar tus respuestas</em></p>
+
+    <script th:inline="javascript">
+        var salaId = /*[[${salaId}]]*/ 0;
+        var tiempoRestante = /*[[${tiempoRestante}]]*/ 0;
+        var letra = /*[[${letra}]]*/ '';
+        var stompClient = null;
+        var timerInterval = null;
+        var tiempoAgotado = false;
+
+        function connect() {
+            var socket = new SockJS('/ws-tuttifrutti');
+            stompClient = Stomp.over(socket);
+            stompClient.connect({}, function (frame) {
+                console.log('Conectado: ' + frame);
+
+                // Suscribirse a eventos de la sala
+                stompClient.subscribe('/topic/sala/' + salaId, function (message) {
+                    var msg = JSON.parse(message.body);
+                    console.log('Mensaje recibido:', msg);
+
+                    if (msg.tipo === 'PARTIDA_FINALIZADA') {
+                        window.location.href = '/juego/multijugador/resultados';
+                    }
+                });
+            });
+        }
+
+        function iniciarTimer() {
+            actualizarTimer();
+
+            timerInterval = setInterval(function() {
+                tiempoRestante--;
+                actualizarTimer();
+
+                if (tiempoRestante <= 0) {
+                    clearInterval(timerInterval);
+                    finalizarPorTiempo();
+                }
+            }, 1000);
+        }
+
+        function actualizarTimer() {
+            var display = document.getElementById('tiempo-restante');
+            display.textContent = tiempoRestante;
+
+            if (tiempoRestante <= 10) {
+                display.style.color = 'red';
+                display.style.fontWeight = 'bold';
+            }
+        }
+
+        function finalizarPorTiempo() {
+            tiempoAgotado = true;
+            document.getElementById('timer-display').innerHTML = '<strong style="color: red;">TIEMPO AGOTADO!</strong>';
+            document.getElementById('mensaje-estado').innerHTML = '<strong style="color: red;">El tiempo se acabo. Redirigiendo a resultados...</strong>';
+
+            // Deshabilitar todos los inputs
+            var inputs = document.querySelectorAll('.input-respuesta');
+            inputs.forEach(input => input.disabled = true);
+            document.getElementById('boton-enviar').disabled = true;
+
+            // Enviar a finalizar por tiempo
+            fetch('/juego/multijugador/finalizar-por-tiempo/' + salaId, {
+                method: 'POST'
+            }).then(() => {
+                setTimeout(() => {
+                    window.location.href = '/juego/multijugador/resultados';
+                }, 2000);
+            });
+        }
+
+        function validarFormulario() {
+            var inputs = document.querySelectorAll('.input-respuesta');
+            var todosCompletos = true;
+
+            inputs.forEach(input => {
+                if (!input.value.trim()) {
+                    todosCompletos = false;
+                }
+            });
+
+            document.getElementById('boton-enviar').disabled = !todosCompletos;
+
+            if (todosCompletos) {
+                document.getElementById('mensaje-estado').innerHTML = '<strong style="color: green;">Todos los campos completos! Puedes enviar tus respuestas</strong>';
+            } else {
+                document.getElementById('mensaje-estado').innerHTML = '<em>Completa todos los campos para poder enviar tus respuestas</em>';
+            }
+        }
+
+        // Escuchar cambios en los inputs
+        document.addEventListener('DOMContentLoaded', function() {
+            var inputs = document.querySelectorAll('.input-respuesta');
+            inputs.forEach(input => {
+                input.addEventListener('input', validarFormulario);
+            });
+
+            // Configurar formulario
+            document.getElementById('formulario-juego').addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                if (tiempoAgotado) {
+                    alert('El tiempo se ha agotado!');
+                    return;
+                }
+
+                // Recopilar respuestas
+                var respuestas = {};
+                var inputs = document.querySelectorAll('.input-respuesta');
+                inputs.forEach(input => {
+                    var categoria = input.getAttribute('data-categoria');
+                    respuestas[categoria] = input.value.trim();
+                });
+
+                // Enviar respuestas
+                document.getElementById('mensaje-estado').innerHTML = '<strong>Enviando respuestas...</strong>';
+                document.getElementById('boton-enviar').disabled = true;
+
+                fetch('/juego/multijugador/responder', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(respuestas)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        document.getElementById('mensaje-estado').innerHTML = '<strong style="color: green;">Respuestas enviadas! Esperando a los demas jugadores...</strong>';
+                        setTimeout(() => {
+                            window.location.href = '/juego/multijugador/jugar';
+                        }, 1000);
+                    } else {
+                        document.getElementById('mensaje-estado').innerHTML = '<strong style="color: red;">Error: ' + data.error + '</strong>';
+                        document.getElementById('boton-enviar').disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('mensaje-estado').innerHTML = '<strong style="color: red;">Error al enviar respuestas</strong>';
+                    document.getElementById('boton-enviar').disabled = false;
+                });
+            });
+
+            // Conectar WebSocket e iniciar timer
+            connect();
+            iniciarTimer();
+        });
+    </script>
 </body>
 </html>

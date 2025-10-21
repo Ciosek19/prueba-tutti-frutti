@@ -24,6 +24,7 @@ public class PartidaMulti {
 
     private LocalDateTime fechaInicio;
     private LocalDateTime fechaFin;
+    private LocalDateTime tiempoLimite; // Cuando termina el tiempo límite
 
     @OneToOne
     @JoinColumn(name = "sala_id")

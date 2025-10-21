@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="refresh" content="5">
     <title>Salas Multijugador - Tutti Frutti</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
 </head>
 <body>
     <h1>TUTTI FRUTTI - MODO MULTIJUGADOR</h1>
@@ -23,6 +24,10 @@
             <input type="number" name="capacidadMaxima" min="2" max="10" value="4" required>
         </p>
         <p>
+            <label>Tiempo limite (segundos):</label>
+            <input type="number" name="tiempoLimite" min="30" max="600" value="120" required>
+        </p>
+        <p>
             <button type="submit">CREAR SALA</button>
         </p>
     </form>
@@ -30,38 +35,8 @@
     <hr>
 
     <h3>SALAS DISPONIBLES</h3>
-    <p><em>Esta pagina se actualiza automaticamente cada 5 segundos</em></p>
-
-    <div th:if="${salas.isEmpty()}">
-        <p><strong>No hay salas disponibles. Crea una nueva sala para comenzar.</strong></p>
-    </div>
-
-    <div th:unless="${salas.isEmpty()}">
-        <table border="1" cellpadding="10">
-            <thead>
-                <tr>
-                    <th>NOMBRE</th>
-                    <th>JUGADORES</th>
-                    <th>CAPACIDAD</th>
-                    <th>ACCION</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr th:each="sala : ${salas}">
-                    <td th:text="${sala.nombre}">Sala 1</td>
-                    <td th:text="${sala.cantidadJugadores}">0</td>
-                    <td th:text="${sala.capacidadMaxima}">4</td>
-                    <td>
-                        <form method="get" th:action="@{'/juego/multijugador/sala/' + ${sala.id}}">
-                            <button type="submit" th:disabled="${sala.estaLlena()}">
-                                <span th:if="${sala.estaLlena()}">SALA LLENA</span>
-                                <span th:unless="${sala.estaLlena()}">UNIRSE</span>
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+    <div id="salas-container">
+        <p><em>Conectando...</em></p>
     </div>
 
     <hr>
@@ -69,5 +44,68 @@
     <form method="get" action="/menu/">
         <button type="submit">VOLVER AL MENU</button>
     </form>
+
+    <script th:inline="javascript">
+        var stompClient = null;
+
+        function connect() {
+            var socket = new SockJS('/ws-tuttifrutti');
+            stompClient = Stomp.over(socket);
+            stompClient.connect({}, function (frame) {
+                console.log('Conectado: ' + frame);
+
+                // Suscribirse a actualizaciones de salas
+                stompClient.subscribe('/topic/salas', function (message) {
+                    cargarSalas();
+                });
+
+                // Cargar salas inicialmente
+                cargarSalas();
+            });
+        }
+
+        function cargarSalas() {
+            fetch('/juego/multijugador/api/salas')
+                .then(response => response.json())
+                .then(salas => {
+                    var container = document.getElementById('salas-container');
+
+                    if (salas.length === 0) {
+                        container.innerHTML = '<p><strong>No hay salas disponibles. Crea una nueva sala para comenzar.</strong></p>';
+                        return;
+                    }
+
+                    var html = '<table border="1" cellpadding="10">';
+                    html += '<thead><tr><th>NOMBRE</th><th>JUGADORES</th><th>CAPACIDAD</th><th>TIEMPO (seg)</th><th>ACCION</th></tr></thead>';
+                    html += '<tbody>';
+
+                    salas.forEach(sala => {
+                        html += '<tr>';
+                        html += '<td>' + sala.nombre + '</td>';
+                        html += '<td>' + sala.cantidadJugadores + '</td>';
+                        html += '<td>' + sala.capacidadMaxima + '</td>';
+                        html += '<td>' + sala.tiempoLimiteSegundos + '</td>';
+                        html += '<td>';
+
+                        if (sala.estaLlena) {
+                            html += '<button disabled>SALA LLENA</button>';
+                        } else {
+                            html += '<form method="get" action="/juego/multijugador/sala/' + sala.id + '" style="display:inline;">';
+                            html += '<button type="submit">UNIRSE</button>';
+                            html += '</form>';
+                        }
+
+                        html += '</td>';
+                        html += '</tr>';
+                    });
+
+                    html += '</tbody></table>';
+                    container.innerHTML = html;
+                });
+        }
+
+        // Conectar al cargar la página
+        connect();
+    </script>
 </body>
 </html>

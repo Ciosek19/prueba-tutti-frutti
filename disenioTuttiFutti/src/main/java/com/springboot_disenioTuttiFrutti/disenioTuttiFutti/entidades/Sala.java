@@ -24,6 +24,9 @@ public class Sala {
     private String estado; // ESPERANDO, JUGANDO, FINALIZADA
     private LocalDateTime fechaCreacion;
 
+    private int tiempoLimiteSegundos = 120; // Tiempo límite en segundos (default 2 minutos)
+    private int jugadoresListosParaReiniciar = 0; // Contador para volver a jugar
+
     @OneToMany(mappedBy = "sala", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Jugador> jugadores = new ArrayList<>();
 

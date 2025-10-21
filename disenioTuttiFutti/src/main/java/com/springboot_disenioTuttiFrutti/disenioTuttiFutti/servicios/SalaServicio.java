@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -33,16 +34,25 @@ public class SalaServicio {
     @Autowired
     private PartidaServicio partidaServicio;
 
+    @Autowired
+    private WebSocketServicio webSocketServicio;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Transactional
-    public Sala crearSala(String nombre, int capacidadMaxima) {
+    public Sala crearSala(String nombre, int capacidadMaxima, int tiempoLimiteSegundos) {
         Sala sala = new Sala();
         sala.setNombre(nombre);
         sala.setCapacidadMaxima(capacidadMaxima);
         sala.setEstado("ESPERANDO");
         sala.setFechaCreacion(LocalDateTime.now());
-        return salaRepositorio.save(sala);
+        sala.setTiempoLimiteSegundos(tiempoLimiteSegundos);
+        Sala savedSala = salaRepositorio.save(sala);
+
+        // Notificar actualización de salas
+        webSocketServicio.notificarActualizacionSalas();
+
+        return savedSala;
     }
 
     public List<Sala> listarSalasDisponibles() {
@@ -74,9 +84,19 @@ public class SalaServicio {
         jugador.setListo(false);
         jugador.setPuntajeTotal(0);
         jugador.setFechaIngreso(LocalDateTime.now());
+        jugador.setQuiereReiniciar(false);
         jugador.setSala(sala);
 
-        return jugadorRepositorio.save(jugador);
+        Jugador savedJugador = jugadorRepositorio.save(jugador);
+
+        // Notificar a la sala que un jugador se unió
+        Map<String, Object> datos = new HashMap<>();
+        datos.put("jugador", nombreJugador);
+        datos.put("cantidadJugadores", sala.getCantidadJugadores());
+        webSocketServicio.enviarMensajeASala(salaId, "JUGADOR_UNIDO", datos);
+        webSocketServicio.notificarActualizacionSalas();
+
+        return savedJugador;
     }
 
     @Transactional
@@ -96,6 +116,7 @@ public class SalaServicio {
         partida.setLetra(categoriasDTO.getLetra());
         partida.setCategoriasJson(objectMapper.writeValueAsString(categoriasDTO.getCategorias()));
         partida.setFechaInicio(LocalDateTime.now());
+        partida.setTiempoLimite(LocalDateTime.now().plusSeconds(sala.getTiempoLimiteSegundos()));
         partida.setSala(sala);
 
         partidaMultiRepositorio.save(partida);
@@ -103,6 +124,14 @@ public class SalaServicio {
         // Cambiar estado de la sala
         sala.setEstado("JUGANDO");
         salaRepositorio.save(sala);
+
+        // Notificar que la partida inició
+        Map<String, Object> datos = new HashMap<>();
+        datos.put("letra", categoriasDTO.getLetra());
+        datos.put("categorias", categoriasDTO.getCategorias());
+        datos.put("tiempoLimite", sala.getTiempoLimiteSegundos());
+        webSocketServicio.enviarMensajeASala(salaId, "PARTIDA_INICIADA", datos);
+        webSocketServicio.notificarActualizacionSalas();
 
         return true;
     }
@@ -115,6 +144,9 @@ public class SalaServicio {
         }
 
         Jugador jugador = jugadorOpt.get();
+
+        // Limpiar respuestas anteriores si existen
+        respuestaJugadorRepositorio.deleteAll(jugador.getRespuestas());
 
         // Validar respuestas con el servicio existente
         ValidacionesDTO validaciones = partidaServicio.validarRespuestas(letra, respuestas);
@@ -136,8 +168,48 @@ public class SalaServicio {
         jugador.setListo(true);
         jugadorRepositorio.save(jugador);
 
+        // Notificar que el jugador está listo
+        Map<String, Object> datos = new HashMap<>();
+        datos.put("jugador", jugador.getNombre());
+        webSocketServicio.enviarMensajeASala(jugador.getSala().getId(), "JUGADOR_LISTO", datos);
+
         // Verificar si todos terminaron
         verificarFinDePartida(jugador.getSala().getId());
+    }
+
+    @Transactional
+    public void finalizarPartidaPorTiempo(Long salaId) {
+        Optional<Sala> salaOpt = salaRepositorio.findById(salaId);
+        if (salaOpt.isEmpty()) {
+            return;
+        }
+
+        Sala sala = salaOpt.get();
+
+        if (!sala.getEstado().equals("JUGANDO")) {
+            return;
+        }
+
+        // Marcar jugadores no listos con puntaje 0
+        for (Jugador jugador : sala.getJugadores()) {
+            if (!jugador.isListo()) {
+                jugador.setListo(true);
+                jugador.setPuntajeTotal(0);
+                jugadorRepositorio.save(jugador);
+            }
+        }
+
+        // Finalizar partida
+        sala.setEstado("FINALIZADA");
+        Optional<PartidaMulti> partidaOpt = partidaMultiRepositorio.findBySalaId(salaId);
+        partidaOpt.ifPresent(partida -> {
+            partida.setFechaFin(LocalDateTime.now());
+            partidaMultiRepositorio.save(partida);
+        });
+        salaRepositorio.save(sala);
+
+        // Notificar fin de partida
+        webSocketServicio.enviarMensajeASala(salaId, "PARTIDA_FINALIZADA", null);
     }
 
     @Transactional
@@ -160,7 +232,79 @@ public class SalaServicio {
                 partidaMultiRepositorio.save(partida);
             });
             salaRepositorio.save(sala);
+
+            // Notificar fin de partida
+            webSocketServicio.enviarMensajeASala(salaId, "PARTIDA_FINALIZADA", null);
         }
+    }
+
+    @Transactional
+    public boolean solicitarReinicio(Long jugadorId) {
+        Optional<Jugador> jugadorOpt = jugadorRepositorio.findById(jugadorId);
+        if (jugadorOpt.isEmpty()) {
+            return false;
+        }
+
+        Jugador jugador = jugadorOpt.get();
+        Sala sala = jugador.getSala();
+
+        if (!sala.getEstado().equals("FINALIZADA")) {
+            return false;
+        }
+
+        // Marcar jugador como queriendo reiniciar
+        if (!jugador.isQuiereReiniciar()) {
+            jugador.setQuiereReiniciar(true);
+            jugadorRepositorio.save(jugador);
+
+            sala.setJugadoresListosParaReiniciar(sala.getJugadoresListosParaReiniciar() + 1);
+            salaRepositorio.save(sala);
+        }
+
+        // Notificar que un jugador quiere reiniciar
+        Map<String, Object> datos = new HashMap<>();
+        datos.put("jugador", jugador.getNombre());
+        datos.put("listos", sala.getJugadoresListosParaReiniciar());
+        datos.put("total", sala.getCantidadJugadores());
+        webSocketServicio.enviarMensajeASala(sala.getId(), "REINICIO_SOLICITADO", datos);
+
+        // Si todos quieren reiniciar, reiniciar la sala
+        if (sala.getJugadoresListosParaReiniciar() >= sala.getCantidadJugadores()) {
+            reiniciarSala(sala.getId());
+        }
+
+        return true;
+    }
+
+    @Transactional
+    public void reiniciarSala(Long salaId) {
+        Optional<Sala> salaOpt = salaRepositorio.findById(salaId);
+        if (salaOpt.isEmpty()) {
+            return;
+        }
+
+        Sala sala = salaOpt.get();
+
+        // Limpiar respuestas de todos los jugadores
+        for (Jugador jugador : sala.getJugadores()) {
+            respuestaJugadorRepositorio.deleteAll(jugador.getRespuestas());
+            jugador.setListo(false);
+            jugador.setPuntajeTotal(0);
+            jugador.setQuiereReiniciar(false);
+            jugadorRepositorio.save(jugador);
+        }
+
+        // Eliminar partida anterior
+        Optional<PartidaMulti> partidaOpt = partidaMultiRepositorio.findBySalaId(salaId);
+        partidaOpt.ifPresent(partidaMultiRepositorio::delete);
+
+        // Resetear sala
+        sala.setEstado("ESPERANDO");
+        sala.setJugadoresListosParaReiniciar(0);
+        salaRepositorio.save(sala);
+
+        // Notificar reinicio
+        webSocketServicio.enviarMensajeASala(salaId, "SALA_REINICIADA", null);
     }
 
     public Optional<Jugador> obtenerJugadorPorSession(String sessionId) {

@@ -24,6 +24,7 @@ public class Jugador {
     private boolean listo; // Si ha terminado de responder
     private int puntajeTotal;
     private LocalDateTime fechaIngreso;
+    private boolean quiereReiniciar = false; // Si quiere volver a jugar
 
     @ManyToOne
     @JoinColumn(name = "sala_id")

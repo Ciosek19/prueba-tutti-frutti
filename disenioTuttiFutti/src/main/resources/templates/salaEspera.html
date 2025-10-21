@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="refresh" content="3">
     <title>Sala de Espera - Tutti Frutti</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
 </head>
 <body>
     <h1>SALA DE ESPERA</h1>
@@ -13,46 +14,120 @@
     <hr>
 
     <h3>JUGADORES EN LA SALA</h3>
-    <p th:text="'Jugadores: ' + ${sala.cantidadJugadores} + ' / ' + ${sala.capacidadMaxima}">Jugadores</p>
+    <p id="contador-jugadores" th:text="'Jugadores: ' + ${sala.cantidadJugadores} + ' / ' + ${sala.capacidadMaxima}">Jugadores</p>
 
-    <table border="1" cellpadding="10">
-        <thead>
-            <tr>
-                <th>JUGADOR</th>
-                <th>ESTADO</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr th:each="j : ${sala.jugadores}">
-                <td th:text="${j.nombre}">Jugador</td>
-                <td>
-                    <span th:if="${j.id == jugador.id}">TU</span>
-                    <span th:unless="${j.id == jugador.id}">ESPERANDO</span>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-
-    <hr>
-
-    <div th:if="${sala.puedeIniciar()}">
-        <p><strong>Hay suficientes jugadores para comenzar!</strong></p>
-        <form method="post" th:action="@{'/juego/multijugador/sala/' + ${sala.id} + '/iniciar'}">
-            <button type="submit">INICIAR PARTIDA</button>
-        </form>
-    </div>
-
-    <div th:unless="${sala.puedeIniciar()}">
-        <p><strong>Esperando mas jugadores...</strong></p>
-        <p><em>Se necesitan minimo 2 jugadores para comenzar</em></p>
+    <div id="jugadores-container">
+        <table border="1" cellpadding="10">
+            <thead>
+                <tr>
+                    <th>JUGADOR</th>
+                    <th>ESTADO</th>
+                </tr>
+            </thead>
+            <tbody id="jugadores-tbody">
+                <tr th:each="j : ${sala.jugadores}">
+                    <td th:text="${j.nombre}">Jugador</td>
+                    <td>
+                        <span th:if="${j.id == jugador.id}">TU</span>
+                        <span th:unless="${j.id == jugador.id}">ESPERANDO</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 
     <hr>
 
-    <p><em>Esta pagina se actualiza automaticamente cada 3 segundos</em></p>
+    <div id="boton-iniciar-container">
+        <div th:if="${sala.puedeIniciar()}">
+            <p><strong>Hay suficientes jugadores para comenzar!</strong></p>
+            <form method="post" th:action="@{'/juego/multijugador/sala/' + ${sala.id} + '/iniciar'}">
+                <button type="submit">INICIAR PARTIDA</button>
+            </form>
+        </div>
+
+        <div th:unless="${sala.puedeIniciar()}">
+            <p><strong>Esperando mas jugadores...</strong></p>
+            <p><em>Se necesitan minimo 2 jugadores para comenzar</em></p>
+        </div>
+    </div>
+
+    <hr>
 
     <form method="get" action="/juego/multijugador/">
         <button type="submit">SALIR DE LA SALA</button>
     </form>
+
+    <script th:inline="javascript">
+        var salaId = /*[[${sala.id}]]*/ 0;
+        var jugadorId = /*[[${jugador.id}]]*/ 0;
+        var capacidadMaxima = /*[[${sala.capacidadMaxima}]]*/ 0;
+        var stompClient = null;
+
+        function connect() {
+            var socket = new SockJS('/ws-tuttifrutti');
+            stompClient = Stomp.over(socket);
+            stompClient.connect({}, function (frame) {
+                console.log('Conectado: ' + frame);
+
+                // Suscribirse a eventos de la sala
+                stompClient.subscribe('/topic/sala/' + salaId, function (message) {
+                    var msg = JSON.parse(message.body);
+                    console.log('Mensaje recibido:', msg);
+
+                    if (msg.tipo === 'JUGADOR_UNIDO') {
+                        actualizarSala();
+                    } else if (msg.tipo === 'PARTIDA_INICIADA') {
+                        window.location.href = '/juego/multijugador/jugar';
+                    }
+                });
+
+                actualizarSala();
+            });
+        }
+
+        function actualizarSala() {
+            fetch('/juego/multijugador/api/sala/' + salaId)
+                .then(response => response.json())
+                .then(sala => {
+                    // Actualizar contador
+                    document.getElementById('contador-jugadores').textContent =
+                        'Jugadores: ' + sala.cantidadJugadores + ' / ' + sala.capacidadMaxima;
+
+                    // Actualizar lista de jugadores
+                    var tbody = document.getElementById('jugadores-tbody');
+                    tbody.innerHTML = '';
+
+                    sala.jugadores.forEach(j => {
+                        var tr = document.createElement('tr');
+                        var tdNombre = document.createElement('td');
+                        tdNombre.textContent = j.nombre;
+
+                        var tdEstado = document.createElement('td');
+                        tdEstado.innerHTML = j.id === jugadorId ? '<span>TU</span>' : '<span>ESPERANDO</span>';
+
+                        tr.appendChild(tdNombre);
+                        tr.appendChild(tdEstado);
+                        tbody.appendChild(tr);
+                    });
+
+                    // Actualizar botón de iniciar
+                    var botonContainer = document.getElementById('boton-iniciar-container');
+                    if (sala.cantidadJugadores >= 2) {
+                        botonContainer.innerHTML =
+                            '<p><strong>Hay suficientes jugadores para comenzar!</strong></p>' +
+                            '<form method="post" action="/juego/multijugador/sala/' + salaId + '/iniciar">' +
+                            '<button type="submit">INICIAR PARTIDA</button>' +
+                            '</form>';
+                    } else {
+                        botonContainer.innerHTML =
+                            '<p><strong>Esperando mas jugadores...</strong></p>' +
+                            '<p><em>Se necesitan minimo 2 jugadores para comenzar</em></p>';
+                    }
+                });
+        }
+
+        connect();
+    </script>
 </body>
 </html>

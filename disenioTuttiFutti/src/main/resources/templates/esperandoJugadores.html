@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="refresh" content="3">
     <title>Esperando Jugadores - Tutti Frutti</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
 </head>
 <body>
     <h1>ESPERANDO A LOS DEMAS JUGADORES</h1>
@@ -13,28 +14,98 @@
 
     <h3>ESTADO DE LOS JUGADORES</h3>
 
-    <table border="1" cellpadding="10">
-        <thead>
-            <tr>
-                <th>JUGADOR</th>
-                <th>ESTADO</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr th:each="j : ${sala.jugadores}">
-                <td th:text="${j.nombre}">Jugador</td>
-                <td>
-                    <span th:if="${j.listo}">LISTO</span>
-                    <span th:unless="${j.listo}">JUGANDO...</span>
-                </td>
-            </tr>
-        </tbody>
-    </table>
+    <div id="jugadores-container">
+        <table border="1" cellpadding="10">
+            <thead>
+                <tr>
+                    <th>JUGADOR</th>
+                    <th>ESTADO</th>
+                </tr>
+            </thead>
+            <tbody id="jugadores-tbody">
+                <tr th:each="j : ${sala.jugadores}">
+                    <td th:text="${j.nombre}">Jugador</td>
+                    <td>
+                        <span th:if="${j.listo}">LISTO</span>
+                        <span th:unless="${j.listo}">JUGANDO...</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 
     <hr>
 
     <p><strong>Has completado tus respuestas!</strong></p>
-    <p><em>Espera a que todos los jugadores terminen para ver los resultados</em></p>
-    <p><em>Esta pagina se actualiza automaticamente cada 3 segundos</em></p>
+    <p id="mensaje-estado"><em>Espera a que todos los jugadores terminen para ver los resultados</em></p>
+
+    <script th:inline="javascript">
+        var salaId = /*[[${sala.id}]]*/ 0;
+        var stompClient = null;
+
+        function connect() {
+            var socket = new SockJS('/ws-tuttifrutti');
+            stompClient = Stomp.over(socket);
+            stompClient.connect({}, function (frame) {
+                console.log('Conectado: ' + frame);
+
+                // Suscribirse a eventos de la sala
+                stompClient.subscribe('/topic/sala/' + salaId, function (message) {
+                    var msg = JSON.parse(message.body);
+                    console.log('Mensaje recibido:', msg);
+
+                    if (msg.tipo === 'JUGADOR_LISTO') {
+                        actualizarEstadoJugadores();
+                    } else if (msg.tipo === 'PARTIDA_FINALIZADA') {
+                        document.getElementById('mensaje-estado').innerHTML = '<strong style="color: green;">Todos han terminado! Redirigiendo a resultados...</strong>';
+                        setTimeout(() => {
+                            window.location.href = '/juego/multijugador/resultados';
+                        }, 1000);
+                    }
+                });
+
+                actualizarEstadoJugadores();
+            });
+        }
+
+        function actualizarEstadoJugadores() {
+            fetch('/juego/multijugador/api/sala/' + salaId)
+                .then(response => response.json())
+                .then(sala => {
+                    var tbody = document.getElementById('jugadores-tbody');
+                    tbody.innerHTML = '';
+
+                    var todosListos = true;
+
+                    sala.jugadores.forEach(j => {
+                        var tr = document.createElement('tr');
+                        var tdNombre = document.createElement('td');
+                        tdNombre.textContent = j.nombre;
+
+                        var tdEstado = document.createElement('td');
+                        if (j.listo) {
+                            tdEstado.innerHTML = '<span>LISTO</span>';
+                        } else {
+                            tdEstado.innerHTML = '<span>JUGANDO...</span>';
+                            todosListos = false;
+                        }
+
+                        tr.appendChild(tdNombre);
+                        tr.appendChild(tdEstado);
+                        tbody.appendChild(tr);
+                    });
+
+                    // Si todos están listos, redirigir
+                    if (todosListos) {
+                        document.getElementById('mensaje-estado').innerHTML = '<strong style="color: green;">Todos han terminado! Redirigiendo a resultados...</strong>';
+                        setTimeout(() => {
+                            window.location.href = '/juego/multijugador/resultados';
+                        }, 1000);
+                    }
+                });
+        }
+
+        connect();
+    </script>
 </body>
 </html>
