@@ -19,16 +19,16 @@ import java.util.Optional;
 public class SalaServicio {
 
     @Autowired
-    private SalaRepositorio salaRepositorio;
+    private ISalaRepositorio salaRepositorio;
 
     @Autowired
-    private JugadorRepositorio jugadorRepositorio;
+    private IJugadorRepositorio jugadorRepositorio;
 
     @Autowired
-    private PartidaMultiRepositorio partidaMultiRepositorio;
+    private IPartidaMultiRepositorio partidaMultiRepositorio;
 
     @Autowired
-    private RespuestaJugadorRepositorio respuestaJugadorRepositorio;
+    private IRespuestaJugadorRepositorio respuestaJugadorRepositorio;
 
     @Autowired
     private PartidaServicio partidaServicio;

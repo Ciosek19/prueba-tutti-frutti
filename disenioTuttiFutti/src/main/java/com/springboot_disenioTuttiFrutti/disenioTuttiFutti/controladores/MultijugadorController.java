@@ -2,7 +2,7 @@ package com.springboot_disenioTuttiFrutti.disenioTuttiFutti.controladores;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.springboot_disenioTuttiFrutti.disenioTuttiFutti.entidades.Jugador;
-import com.springboot_disenioTuttiFrutti.disenioTuttiFrutti.entidades.PartidaMulti;
+import com.springboot_disenioTuttiFrutti.disenioTuttiFutti.entidades.PartidaMulti;
 import com.springboot_disenioTuttiFrutti.disenioTuttiFutti.entidades.Sala;
 import com.springboot_disenioTuttiFrutti.disenioTuttiFutti.servicios.SalaServicio;
 import jakarta.servlet.http.HttpSession;
@@ -25,8 +25,9 @@ public class MultijugadorController {
 
     @GetMapping("/")
     public String listarSalas(Model model, HttpSession session) {
-        String nombreUsuario = (String) session.getAttribute("nombreUsuario");
+        String nombreUsuario = (String) session.getAttribute("usuario");
         if (nombreUsuario == null) {
+            System.out.println("ERROR NOMBRE USUARIO NULL");
             return "redirect:/";
         }
 
@@ -41,7 +42,7 @@ public class MultijugadorController {
     public String crearSala(@RequestParam String nombreSala,
                            @RequestParam int capacidadMaxima,
                            HttpSession session) {
-        String nombreUsuario = (String) session.getAttribute("nombreUsuario");
+        String nombreUsuario = (String) session.getAttribute("usuario");
         if (nombreUsuario == null) {
             return "redirect:/";
         }
@@ -52,7 +53,7 @@ public class MultijugadorController {
 
     @GetMapping("/sala/{salaId}")
     public String verSala(@PathVariable Long salaId, Model model, HttpSession session) {
-        String nombreUsuario = (String) session.getAttribute("nombreUsuario");
+        String nombreUsuario = (String) session.getAttribute("usuario");
         if (nombreUsuario == null) {
             return "redirect:/";
         }

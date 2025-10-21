@@ -1,4 +1,4 @@
-package com.springboot_disenioTuttiFrutti.disenioTuttiFrutti.entidades;
+package com.springboot_disenioTuttiFrutti.disenioTuttiFutti.entidades;
 
 import jakarta.persistence.*;
 import lombok.Data;

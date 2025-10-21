@@ -7,6 +7,6 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface RespuestaJugadorRepositorio extends JpaRepository<RespuestaJugador, Long> {
+public interface IRespuestaJugadorRepositorio extends JpaRepository<RespuestaJugador, Long> {
     List<RespuestaJugador> findByJugadorId(Long jugadorId);
 }

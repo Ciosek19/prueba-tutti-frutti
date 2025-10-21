@@ -7,7 +7,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface SalaRepositorio extends JpaRepository<Sala, Long> {
+public interface ISalaRepositorio extends JpaRepository<Sala, Long> {
     List<Sala> findByEstado(String estado);
     List<Sala> findByEstadoOrderByFechaCreacionDesc(String estado);
 }

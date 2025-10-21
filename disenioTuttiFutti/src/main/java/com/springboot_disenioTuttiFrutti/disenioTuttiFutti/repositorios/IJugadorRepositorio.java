@@ -7,7 +7,7 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public interface JugadorRepositorio extends JpaRepository<Jugador, Long> {
+public interface IJugadorRepositorio extends JpaRepository<Jugador, Long> {
     Optional<Jugador> findBySessionId(String sessionId);
     Optional<Jugador> findBySessionIdAndSalaId(String sessionId, Long salaId);
 }

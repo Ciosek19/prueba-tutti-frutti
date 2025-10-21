@@ -7,6 +7,6 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public interface PartidaMultiRepositorio extends JpaRepository<PartidaMulti, Long> {
+public interface IPartidaMultiRepositorio extends JpaRepository<PartidaMulti, Long> {
     Optional<PartidaMulti> findBySalaId(Long salaId);
 }

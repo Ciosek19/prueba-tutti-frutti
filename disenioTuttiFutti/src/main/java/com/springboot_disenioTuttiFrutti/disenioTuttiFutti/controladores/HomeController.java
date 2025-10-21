@@ -5,6 +5,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import jakarta.servlet.http.HttpSession;
+
 @Controller
 public class HomeController {
 
@@ -14,9 +16,12 @@ public class HomeController {
     }
 
     @PostMapping("/")
-    public String index(@RequestParam String usuario) {
-        if (usuario != null && !usuario.trim().isEmpty())
+    public String index(@RequestParam String usuario, HttpSession session) {
+        if (usuario != null && !usuario.trim().isEmpty()) {
+            // Guardar nombre en la sesión desde el inicio
+            session.setAttribute("usuario", usuario);
             return "redirect:/menu/";
+        }
         return "index";
     }
 }
