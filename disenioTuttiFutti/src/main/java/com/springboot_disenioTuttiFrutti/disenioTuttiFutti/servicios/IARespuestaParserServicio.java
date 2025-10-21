@@ -3,8 +3,8 @@ package com.springboot_disenioTuttiFrutti.disenioTuttiFutti.servicios;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.springboot_disenioTuttiFrutti.disenioTuttiFutti.modelos.CategoriasRespuesta;
-import com.springboot_disenioTuttiFrutti.disenioTuttiFutti.modelos.ValidacionesRespuesta;
+import com.springboot_disenioTuttiFrutti.disenioTuttiFutti.modelos.CategoriasDTO;
+import com.springboot_disenioTuttiFrutti.disenioTuttiFutti.modelos.ValidacionesDTO;
 
 @Service
 public class IARespuestaParserServicio {
@@ -18,12 +18,12 @@ public class IARespuestaParserServicio {
                 false);
     }
 
-    public ValidacionesRespuesta parsearValidaciones(String textoRespuesta){
+    public ValidacionesDTO parsearValidaciones(String textoRespuesta){
         try {
             String limpio = textoRespuesta.trim().replaceAll("^\\uFEFF", "");
             System.out.println("JSON validación a parsear: " + limpio);
             
-            ValidacionesRespuesta response = objectMapper.readValue(limpio, ValidacionesRespuesta.class);
+            ValidacionesDTO response = objectMapper.readValue(limpio, ValidacionesDTO.class);
             
             if (response.getValidaciones() == null) {
                 throw new RuntimeException("Respuesta parseada tiene validaciones null");
@@ -40,7 +40,7 @@ public class IARespuestaParserServicio {
         }
     }
 
-    public CategoriasRespuesta parsearCategorias(String textoRespuesta) {
+    public CategoriasDTO parsearCategorias(String textoRespuesta) {
         try {
             // Limpiar caracteres invisibles
             String limpio = textoRespuesta.trim().replaceAll("^\\uFEFF", "");
@@ -49,7 +49,7 @@ public class IARespuestaParserServicio {
             System.out.println("JSON a parsear: " + limpio);
 
             // Parsear
-            CategoriasRespuesta response = objectMapper.readValue(limpio, CategoriasRespuesta.class);
+            CategoriasDTO response = objectMapper.readValue(limpio, CategoriasDTO.class);
 
             // Validar que no sea null
             if (response.getLetra() == null || response.getCategorias() == null) {

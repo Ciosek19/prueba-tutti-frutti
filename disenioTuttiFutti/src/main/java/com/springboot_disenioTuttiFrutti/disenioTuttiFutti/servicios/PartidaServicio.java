@@ -3,8 +3,8 @@ package com.springboot_disenioTuttiFrutti.disenioTuttiFutti.servicios;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.springboot_disenioTuttiFrutti.disenioTuttiFutti.modelos.CategoriasRespuesta;
-import com.springboot_disenioTuttiFrutti.disenioTuttiFutti.modelos.ValidacionesRespuesta;
+import com.springboot_disenioTuttiFrutti.disenioTuttiFutti.modelos.CategoriasDTO;
+import com.springboot_disenioTuttiFrutti.disenioTuttiFutti.modelos.ValidacionesDTO;
 
 import java.util.Map;
 
@@ -13,15 +13,15 @@ public class PartidaServicio {
     
     private final IAGeminiServicio iaGeminiServicio;
     private final IARespuestaParserServicio parser;
-    private final ConstructorPrompt promptBuilder;
+    private final ConstructorPrompt constructorPrompt;
     
     @Autowired
     public PartidaServicio(IAGeminiServicio iaGeminiServicio, 
                           IARespuestaParserServicio parser,
-                          ConstructorPrompt promptBuilder) {
+                          ConstructorPrompt constructorPrompt) {
         this.iaGeminiServicio = iaGeminiServicio;
         this.parser = parser;
-        this.promptBuilder = promptBuilder;
+        this.constructorPrompt = constructorPrompt;
     }
     
     /**
@@ -32,10 +32,10 @@ public class PartidaServicio {
      * 3. Parsear respuesta
      * 4. Devolver objeto listo
      */
-    public CategoriasRespuesta iniciarPartida(int cantidadCategorias) {
+    public CategoriasDTO iniciarPartida(int cantidadCategorias) {
         try {
             // 1. Construir el prompt
-            String prompt = promptBuilder.construirPromptCategorias(cantidadCategorias);
+            String prompt = constructorPrompt.construirPromptCategorias(cantidadCategorias);
             
             System.out.println("📤 Solicitando categorías a la IA...");
             
@@ -45,7 +45,7 @@ public class PartidaServicio {
             System.out.println("📥 Respuesta recibida de IA");
             
             // 3. Parsear String → Objeto Java
-            CategoriasRespuesta categorias = parser.parsearCategorias(textoRespuesta);
+            CategoriasDTO categorias = parser.parsearCategorias(textoRespuesta);
             
             System.out.println("✅ Partida iniciada - Letra: " + categorias.getLetra() + 
                              ", Categorías: " + categorias.getCategorias());
@@ -67,10 +67,10 @@ public class PartidaServicio {
      * 3. Parsear respuesta
      * 4. Devolver objeto listo
      */
-    public ValidacionesRespuesta validarRespuestas(String letra, Map<String, String> respuestas) {
+    public ValidacionesDTO validarRespuestas(String letra, Map<String, String> respuestas) {
         try {
             // 1. Construir el prompt
-            String prompt = promptBuilder.construirPromptValidacion(letra, respuestas);
+            String prompt = constructorPrompt.construirPromptValidacion(letra, respuestas);
             
             System.out.println("📤 Solicitando validación a la IA para letra: " + letra);
             System.out.println("   Respuestas: " + respuestas);
@@ -81,7 +81,7 @@ public class PartidaServicio {
             System.out.println("📥 Validación recibida de IA");
             
             // 3. Parsear String → Objeto Java
-            ValidacionesRespuesta validacion = parser.parsearValidaciones(textoRespuesta);
+            ValidacionesDTO validacion = parser.parsearValidaciones(textoRespuesta);
             
             System.out.println("✅ Validación completada - Puntaje: " + validacion.getPuntajeTotal());
             System.out.println("   Válidas: " + validacion.getRespuestasValidas() + 

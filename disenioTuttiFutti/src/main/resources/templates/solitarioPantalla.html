@@ -28,7 +28,7 @@
             <!-- Por cada categoría, crear un label e input -->
             <div th:each="cat : ${categorias}">
                 <label th:text="${cat} + ':'"></label>
-                <input type="text" th:name="${cat}" th:placeholder="'Escribe con ' + ${letra}">
+                <input type="text" th:name="${cat}" th:placeholder="${letra}">
                 <br><br>
             </div>
             

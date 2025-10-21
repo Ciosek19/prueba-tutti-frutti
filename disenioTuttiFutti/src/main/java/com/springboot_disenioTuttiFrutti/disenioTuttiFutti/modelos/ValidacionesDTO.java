@@ -3,7 +3,7 @@ package com.springboot_disenioTuttiFrutti.disenioTuttiFutti.modelos;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
-public class ValidacionesRespuesta {
+public class ValidacionesDTO {
     
     private List<ValidacionItem> validaciones;
     private int puntajeTotal;
@@ -11,10 +11,10 @@ public class ValidacionesRespuesta {
     private int respuestasInvalidas;
     
     // Constructor vacío (necesario para Jackson)
-    public ValidacionesRespuesta() {}
+    public ValidacionesDTO() {}
     
     // Constructor completo
-    public ValidacionesRespuesta(List<ValidacionItem> validaciones, int puntajeTotal, 
+    public ValidacionesDTO(List<ValidacionItem> validaciones, int puntajeTotal, 
                                int respuestasValidas, int respuestasInvalidas) {
         this.validaciones = validaciones;
         this.puntajeTotal = puntajeTotal;

@@ -5,8 +5,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import com.springboot_disenioTuttiFrutti.disenioTuttiFutti.modelos.CategoriasRespuesta;
-import com.springboot_disenioTuttiFrutti.disenioTuttiFutti.modelos.ValidacionesRespuesta;
+import com.springboot_disenioTuttiFrutti.disenioTuttiFutti.modelos.CategoriasDTO;
+import com.springboot_disenioTuttiFrutti.disenioTuttiFutti.modelos.ValidacionesDTO;
 import com.springboot_disenioTuttiFrutti.disenioTuttiFutti.servicios.PartidaServicio;
 
 import java.util.Map;
@@ -22,15 +22,11 @@ public class SolitarioController {
         this.partidaServicio = partidaServicio;
     }
 
-    /*
-     * Página inicial - Obtiene categorías y muestra formulario
-     * GET /juego/solitario/
-     */
     @GetMapping("/")
     public String inicio(Model model) {
         try {
             // Obtener categorías y letra de la IA
-            CategoriasRespuesta datos = partidaServicio.iniciarPartida(5);
+            CategoriasDTO datos = partidaServicio.iniciarPartida(5);
             
             // Enviar a la vista
             model.addAttribute("letra", datos.getLetra());
@@ -64,7 +60,7 @@ public class SolitarioController {
             System.out.println("📋 Respuestas: " + respuestas);
             
             // Validar con la IA
-            ValidacionesRespuesta resultado = partidaServicio.validarRespuestas(letra, respuestas);
+            ValidacionesDTO resultado = partidaServicio.validarRespuestas(letra, respuestas);
             
             // Enviar resultados a la vista
             model.addAttribute("letra", letra);

@@ -2,12 +2,12 @@ package com.springboot_disenioTuttiFrutti.disenioTuttiFutti.modelos;
 
 import java.util.List;
 
-public class CategoriasRespuesta {
+public class CategoriasDTO {
 
     private String letra;
     private List<String> categorias;
 
-    public CategoriasRespuesta() {
+    public CategoriasDTO() {
     }
 
     public String getLetra() {
