@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego Multijugador - Tutti Frutti</title>
+</head>
+<body>
+    <h1>TUTTI FRUTTI - MULTIJUGADOR</h1>
+    <h2 th:text="'Jugador: ' + ${nombreUsuario}">Jugador</h2>
+
+    <hr>
+
+    <h3 th:text="'LETRA: ' + ${letra}">LETRA</h3>
+    <p><strong>Completa cada categoria con una palabra que empiece con la letra indicada</strong></p>
+
+    <hr>
+
+    <form method="post" th:action="@{/juego/multijugador/responder}">
+        <input type="hidden" name="nombreUsuario" th:value="${nombreUsuario}">
+
+        <table border="1" cellpadding="10">
+            <thead>
+                <tr>
+                    <th>CATEGORIA</th>
+                    <th>TU RESPUESTA</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="categoria : ${categorias}">
+                    <td th:text="${categoria}">Categoria</td>
+                    <td>
+                        <input type="text" th:name="${categoria}" size="30" required>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <hr>
+
+        <button type="submit">ENVIAR RESPUESTAS</button>
+    </form>
+
+    <hr>
+
+    <p><em>Una vez que envies tus respuestas, tendras que esperar a que todos los jugadores terminen</em></p>
+</body>
+</html>

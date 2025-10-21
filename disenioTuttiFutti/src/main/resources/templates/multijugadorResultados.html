@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultados - Tutti Frutti</title>
+</head>
+<body>
+    <h1>RESULTADOS DE LA PARTIDA</h1>
+    <h2 th:text="'Sala: ' + ${sala.nombre}">Sala</h2>
+
+    <hr>
+
+    <h3>TABLA DE POSICIONES</h3>
+
+    <table border="1" cellpadding="10">
+        <thead>
+            <tr>
+                <th>POSICION</th>
+                <th>JUGADOR</th>
+                <th>PUNTAJE TOTAL</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="jugador, iterStat : ${jugadores}">
+                <td th:text="${iterStat.index + 1}">1</td>
+                <td th:text="${jugador.nombre}">Jugador</td>
+                <td th:text="${jugador.puntajeTotal}">0</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <hr>
+
+    <h3>DETALLE DE RESPUESTAS POR JUGADOR</h3>
+
+    <div th:each="jugador : ${jugadores}">
+        <h4 th:text="${jugador.nombre} + ' - ' + ${jugador.puntajeTotal} + ' puntos'">Jugador</h4>
+
+        <table border="1" cellpadding="10">
+            <thead>
+                <tr>
+                    <th>CATEGORIA</th>
+                    <th>RESPUESTA</th>
+                    <th>VALIDA</th>
+                    <th>PUNTOS</th>
+                    <th>RAZON</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="respuesta : ${jugador.respuestas}">
+                    <td th:text="${respuesta.categoria}">Categoria</td>
+                    <td th:text="${respuesta.respuesta}">Respuesta</td>
+                    <td>
+                        <strong th:if="${respuesta.esValida}">SI</strong>
+                        <strong th:unless="${respuesta.esValida}">NO</strong>
+                    </td>
+                    <td th:text="${respuesta.puntos}">0</td>
+                    <td th:text="${respuesta.razon}">Razon</td>
+                </tr>
+            </tbody>
+        </table>
+        <br>
+    </div>
+
+    <hr>
+
+    <h3>OPCIONES</h3>
+
+    <form method="get" action="/juego/multijugador/">
+        <button type="submit">VOLVER A LISTA DE SALAS</button>
+    </form>
+
+    <br>
+
+    <form method="get" action="/menu/">
+        <button type="submit">VOLVER AL MENU PRINCIPAL</button>
+    </form>
+</body>
+</html>

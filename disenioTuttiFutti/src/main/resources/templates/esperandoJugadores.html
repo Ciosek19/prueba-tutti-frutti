@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="3">
+    <title>Esperando Jugadores - Tutti Frutti</title>
+</head>
+<body>
+    <h1>ESPERANDO A LOS DEMAS JUGADORES</h1>
+
+    <hr>
+
+    <h3>ESTADO DE LOS JUGADORES</h3>
+
+    <table border="1" cellpadding="10">
+        <thead>
+            <tr>
+                <th>JUGADOR</th>
+                <th>ESTADO</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="j : ${sala.jugadores}">
+                <td th:text="${j.nombre}">Jugador</td>
+                <td>
+                    <span th:if="${j.listo}">LISTO</span>
+                    <span th:unless="${j.listo}">JUGANDO...</span>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <hr>
+
+    <p><strong>Has completado tus respuestas!</strong></p>
+    <p><em>Espera a que todos los jugadores terminen para ver los resultados</em></p>
+    <p><em>Esta pagina se actualiza automaticamente cada 3 segundos</em></p>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="5">
+    <title>Salas Multijugador - Tutti Frutti</title>
+</head>
+<body>
+    <h1>TUTTI FRUTTI - MODO MULTIJUGADOR</h1>
+    <h2 th:text="'Bienvenido, ' + ${nombreUsuario}">Bienvenido</h2>
+
+    <hr>
+
+    <h3>CREAR NUEVA SALA</h3>
+    <form method="post" th:action="@{/juego/multijugador/crear}">
+        <p>
+            <label>Nombre de la sala:</label>
+            <input type="text" name="nombreSala" required>
+        </p>
+        <p>
+            <label>Capacidad maxima (2-10 jugadores):</label>
+            <input type="number" name="capacidadMaxima" min="2" max="10" value="4" required>
+        </p>
+        <p>
+            <button type="submit">CREAR SALA</button>
+        </p>
+    </form>
+
+    <hr>
+
+    <h3>SALAS DISPONIBLES</h3>
+    <p><em>Esta pagina se actualiza automaticamente cada 5 segundos</em></p>
+
+    <div th:if="${salas.isEmpty()}">
+        <p><strong>No hay salas disponibles. Crea una nueva sala para comenzar.</strong></p>
+    </div>
+
+    <div th:unless="${salas.isEmpty()}">
+        <table border="1" cellpadding="10">
+            <thead>
+                <tr>
+                    <th>NOMBRE</th>
+                    <th>JUGADORES</th>
+                    <th>CAPACIDAD</th>
+                    <th>ACCION</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="sala : ${salas}">
+                    <td th:text="${sala.nombre}">Sala 1</td>
+                    <td th:text="${sala.cantidadJugadores}">0</td>
+                    <td th:text="${sala.capacidadMaxima}">4</td>
+                    <td>
+                        <form method="get" th:action="@{'/juego/multijugador/sala/' + ${sala.id}}">
+                            <button type="submit" th:disabled="${sala.estaLlena()}">
+                                <span th:if="${sala.estaLlena()}">SALA LLENA</span>
+                                <span th:unless="${sala.estaLlena()}">UNIRSE</span>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <hr>
+
+    <form method="get" action="/menu/">
+        <button type="submit">VOLVER AL MENU</button>
+    </form>
+</body>
+</html>

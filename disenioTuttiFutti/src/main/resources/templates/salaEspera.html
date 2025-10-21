@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="3">
+    <title>Sala de Espera - Tutti Frutti</title>
+</head>
+<body>
+    <h1>SALA DE ESPERA</h1>
+    <h2 th:text="'Sala: ' + ${sala.nombre}">Sala</h2>
+
+    <hr>
+
+    <h3>JUGADORES EN LA SALA</h3>
+    <p th:text="'Jugadores: ' + ${sala.cantidadJugadores} + ' / ' + ${sala.capacidadMaxima}">Jugadores</p>
+
+    <table border="1" cellpadding="10">
+        <thead>
+            <tr>
+                <th>JUGADOR</th>
+                <th>ESTADO</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="j : ${sala.jugadores}">
+                <td th:text="${j.nombre}">Jugador</td>
+                <td>
+                    <span th:if="${j.id == jugador.id}">TU</span>
+                    <span th:unless="${j.id == jugador.id}">ESPERANDO</span>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <hr>
+
+    <div th:if="${sala.puedeIniciar()}">
+        <p><strong>Hay suficientes jugadores para comenzar!</strong></p>
+        <form method="post" th:action="@{'/juego/multijugador/sala/' + ${sala.id} + '/iniciar'}">
+            <button type="submit">INICIAR PARTIDA</button>
+        </form>
+    </div>
+
+    <div th:unless="${sala.puedeIniciar()}">
+        <p><strong>Esperando mas jugadores...</strong></p>
+        <p><em>Se necesitan minimo 2 jugadores para comenzar</em></p>
+    </div>
+
+    <hr>
+
+    <p><em>Esta pagina se actualiza automaticamente cada 3 segundos</em></p>
+
+    <form method="get" action="/juego/multijugador/">
+        <button type="submit">SALIR DE LA SALA</button>
+    </form>
+</body>
+</html>

@@ -22,6 +22,6 @@ public class MenuController {
 
     @PostMapping("/multijugador")
     public String multijugador() {
-        return "redirect:/";
+        return "redirect:/juego/multijugador/";
     }
 }
